@@ -20,14 +20,15 @@ public class JenkinsRunnerService {
 
     @Async("asyncExecutor")
     public void runJenkinsJobAsync(String projectParam, String deploymentId) {
-        saveAndBroadcastLog(deploymentId, "INFO", "Proceso de despliegue inicializado para: " + projectParam);
 
         log.info("Iniciando flujo asíncrono de despliegue en Jenkins. ID asignado: {}", deploymentId);
 
         try {
 
             // Simulate initial processing time before calling Jenkins API. This can be removed once the actual API call is implemented.
-            Thread.sleep(2000);
+            Thread.sleep(10000);
+
+            saveAndBroadcastLog(deploymentId, "INFO", "Proceso de despliegue inicializado para: " + projectParam);
 
             // Log the start of the deployment process
             saveAndBroadcastLog(deploymentId, "INFO", "Iniciando petición a la API de Jenkins para el proyecto: " + projectParam);
