@@ -34,10 +34,13 @@ public class DeploymentController {
                     .body(Map.of("error", "El sistema está bloqueado. Hay un despliegue en curso en Jenkins."));
         }
 
-        jenkinsOrchestratorService.triggerJenkinsDeployment(projectName);
+        String deploymentId = jenkinsOrchestratorService.initDeploymentProcess(projectName);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(Map.of("message", "Despliegue solicitado correctamente. Procesando en segundo plano..."));
+                .body(Map.of(
+                        "message", "Despliegue solicitado correctamente. Procesando en segundo plano...",
+                        "deploymentId", deploymentId
+                ));
     }
 
     @GetMapping(value = "/stream/{deploymentId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
