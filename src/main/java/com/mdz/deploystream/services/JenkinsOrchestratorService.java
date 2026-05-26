@@ -22,14 +22,22 @@ public class JenkinsOrchestratorService {
     private final SseService sseService;
     private final ConfigService configService;
 
-    @Async("asyncExecutor")
-    public CompletableFuture<Void> triggerJenkinsDeployment(String projectParam) {
+    public String initDeploymentProcess(String projectParam) {
         String deploymentId = UUID.randomUUID().toString().substring(0, 8);
+        configService.setSystemLock(true);
+        saveAndBroadcastLog(deploymentId, "INFO", "Proceso de despliegue inicializado para: " + projectParam);
+        this.runJenkinsJobAsync(projectParam, deploymentId);
+        return deploymentId;
+    }
+
+    @Async("asyncExecutor")
+    public void runJenkinsJobAsync(String projectParam, String deploymentId) {
         log.info("Iniciando flujo asíncrono de despliegue en Jenkins. ID asignado: {}", deploymentId);
 
         try {
-            // Block the system to prevent concurrent deployments
-            configService.setSystemLock(true);
+
+            // Simulate initial processing time before calling Jenkins API. This can be removed once the actual API call is implemented.
+            Thread.sleep(2000);
 
             // Log the start of the deployment process
             saveAndBroadcastLog(deploymentId, "INFO", "Iniciando petición a la API de Jenkins para el proyecto: " + projectParam);
@@ -38,6 +46,9 @@ public class JenkinsOrchestratorService {
 
             // Log the successful acceptance of the Jenkins job
             saveAndBroadcastLog(deploymentId, "INFO", "Jenkins Job aceptado. Estado: IN_PROGRESS");
+
+            // Simulate time taken for Jenkins to process the job. This should be replaced with actual status checks.
+            Thread.sleep(5000);
 
             // TODO - Implement polling mechanism to check Jenkins job status and log updates in real-time
             // while (job is running)..
@@ -51,7 +62,6 @@ public class JenkinsOrchestratorService {
             // either through a 'RollbackTask' or a Jenkins success webhook.
             log.info("Hilo asíncrono finalizado para el despliegue {}", deploymentId);
         }
-        return CompletableFuture.completedFuture(null);
     }
 
     private void saveAndBroadcastLog(String deploymentId, String level, String message) {
