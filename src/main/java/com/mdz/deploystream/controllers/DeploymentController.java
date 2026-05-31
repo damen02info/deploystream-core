@@ -24,6 +24,7 @@ public class DeploymentController {
     @PostMapping
     public ResponseEntity<Map<String, String>> triggerDeployment(@RequestBody Map<String, String> requestBody) {
         String projectName = requestBody.get("project");
+        String deploymentId = requestBody.get("deploymentId");
 
         if (projectName == null || projectName.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "El parámetro 'project' es obligatorio."));
@@ -34,7 +35,7 @@ public class DeploymentController {
                     .body(Map.of("error", "El sistema está bloqueado. Hay un despliegue en curso en Jenkins."));
         }
 
-        String deploymentId = jenkinsOrchestratorService.initDeploymentProcess(projectName);
+        jenkinsOrchestratorService.initDeploymentProcess(projectName, deploymentId);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(Map.of(
