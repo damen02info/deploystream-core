@@ -21,11 +21,9 @@ public class JenkinsOrchestratorService {
     private final ConfigService configService;
     private final JenkinsRunnerService runnerService;
 
-    public String initDeploymentProcess(String projectParam) {
-        String deploymentId = UUID.randomUUID().toString().substring(0, 8);
+    public void initDeploymentProcess(String projectParam, String deploymentId) {
         configService.setSystemLock(true);
         runnerService.runJenkinsJobAsync(projectParam, deploymentId);
-        return deploymentId;
     }
 
 
