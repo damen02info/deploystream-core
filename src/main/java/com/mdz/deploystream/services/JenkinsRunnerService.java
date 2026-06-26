@@ -18,6 +18,7 @@ public class JenkinsRunnerService {
     private final DeploymentLogRepository logRepository;
     private final SseService sseService;
 
+    // Async because the Jenkins job can take a long time to complete, and we don't want to block the main thread.
     @Async("asyncExecutor")
     public void runJenkinsJobAsync(String projectParam, String deploymentId) {
 
