@@ -18,6 +18,7 @@ public class JenkinsRunnerService {
     private final DeploymentLogRepository logRepository;
     private final SseService sseService;
 
+    // Async because the Jenkins job can take a long time to complete, and we don't want to block the main thread.
     @Async("asyncExecutor")
     public void runJenkinsJobAsync(String projectParam, String deploymentId) {
 
@@ -43,8 +44,14 @@ public class JenkinsRunnerService {
             // TODO - Implement polling mechanism to check Jenkins job status and log updates in real-time
             // while (job is running)..
 
+            // Simulation of logs
+            for (int i = 1; i <= 5; i++) {
+                saveAndBroadcastLog(deploymentId, "INFO", "Jenkins Job en progreso... (" + i * 20 + "% completado)");
+                Thread.sleep(3000);
+            }
+
             // End of the deployment process
-            saveAndBroadcastLog(deploymentId, "INFO", "Despliegue finalizado con éxito en infraestructura de destino.");
+            saveAndBroadcastLog(deploymentId, "INFO", "Despliegue finalizado con éxito en infraestructura de destino. Estado: SUCCESS");
         } catch (Exception e) {
             saveAndBroadcastLog(deploymentId, "ERROR", "Fallo crítico en la comunicación con Jenkins: " + e.getMessage());
         } finally {
