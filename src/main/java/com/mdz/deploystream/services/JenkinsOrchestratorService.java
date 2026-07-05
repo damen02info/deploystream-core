@@ -21,9 +21,9 @@ public class JenkinsOrchestratorService {
     private final ConfigService configService;
     private final JenkinsRunnerService runnerService;
 
-    public void initDeploymentProcess(String projectParam, String deploymentId) {
+    public void initDeploymentProcess(String projectParam, String deploymentId, String colorParam) {
         configService.setSystemLock(true);
-        runnerService.runJenkinsJobAsync(projectParam, deploymentId);
+        runnerService.runJenkinsJobAsync(projectParam, deploymentId, colorParam);
     }
 
 

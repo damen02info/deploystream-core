@@ -25,6 +25,12 @@ public class DeploymentController {
     public ResponseEntity<Map<String, String>> triggerDeployment(@RequestBody Map<String, String> requestBody) {
         String projectName = requestBody.get("project");
         String deploymentId = requestBody.get("deploymentId");
+        String color = requestBody.get("color");
+        if (color != null && !color.isBlank()) {
+            if (!color.matches("^#([A-Fa-f0-9]{6})$")) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Color inválido. Formato esperado: #rrggbb"));
+            }
+        }
 
         if (projectName == null || projectName.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "El parámetro 'project' es obligatorio."));
@@ -35,7 +41,7 @@ public class DeploymentController {
                     .body(Map.of("error", "El sistema está bloqueado. Hay un despliegue en curso en Jenkins."));
         }
 
-        jenkinsOrchestratorService.initDeploymentProcess(projectName, deploymentId);
+        jenkinsOrchestratorService.initDeploymentProcess(projectName, deploymentId, color);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(Map.of(
