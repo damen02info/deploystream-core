@@ -27,12 +27,12 @@ public class ConfigService {
 
     @Transactional
     public AppConfig updateConfig(String key, String value) {
-        AppConfig config = appConfigRepository.findById(key)
-                .orElse(AppConfig.builder().configKey(key).build());
-
+        AppConfig config = appConfigRepository.findById(key).orElse(AppConfig.builder().configKey(key).configValue(value).isLocked(false).lastModified(LocalDateTime.now()).build());
         config.setConfigValue(value);
         config.setLastModified(LocalDateTime.now());
-
+        if (config.getIsLocked() == null) {
+            config.setIsLocked(false);
+        }
         AppConfig savedConfig = appConfigRepository.save(config);
         eventPublisher.publishEvent(new AppConfigUpdateEvent(this, savedConfig));
         return savedConfig;
@@ -61,4 +61,16 @@ public class ConfigService {
         return appConfigRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
+    public AppConfig emitConfigUpdate(String key, String value) {
+        AppConfig payload = AppConfig.builder()
+                .configKey(key)
+                .configValue(value)
+                .lastModified(LocalDateTime.now())
+                .isLocked(Boolean.FALSE)
+                .build();
+
+        eventPublisher.publishEvent(new AppConfigUpdateEvent(this, payload));
+        return payload;
+    }
 }

@@ -4,10 +4,21 @@ import com.mdz.deploystream.entities.DeploymentLog;
 import com.mdz.deploystream.repositories.DeploymentLogRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
+import java.util.Base64;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -17,46 +28,107 @@ public class JenkinsRunnerService {
     private final ConfigService configService;
     private final DeploymentLogRepository logRepository;
     private final SseService sseService;
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    // Async because the Jenkins job can take a long time to complete, and we don't want to block the main thread.
+    @Value("${jenkins.url:http://localhost:8082}")
+    private String jenkinsUrl;
+
+    @Value("${jenkins.username:admin}")
+    private String username;
+
+    @Value("${jenkins.token}")
+    private String token;
+
+    @Value("${jenkins.job.name:portfolio-deploy-job}")
+    private String jobName;
+
     @Async("asyncExecutor")
-    public void runJenkinsJobAsync(String projectParam, String deploymentId) {
-
+    public void runJenkinsJobAsync(String projectParam, String deploymentId, String colorParam) {
         log.info("Iniciando flujo asíncrono de despliegue en Jenkins. ID asignado: {}", deploymentId);
 
         try {
             saveAndBroadcastLog(deploymentId, "INFO", "Proceso de despliegue inicializado para: " + projectParam);
+            saveAndBroadcastLog(deploymentId, "INFO", "Iniciando petición a la API de Jenkins...");
 
-            // Log the start of the deployment process
-            saveAndBroadcastLog(deploymentId, "INFO", "Iniciando petición a la API de Jenkins para el proyecto: " + projectParam);
+            String url = String.format("%s/job/%s/buildWithParameters", jenkinsUrl, jobName);
 
-            // Simulate initial processing time before calling Jenkins API. This can be removed once the actual API call is implemented.
-            Thread.sleep(5000);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            String auth = username + ":" + token;
+            headers.set("Authorization", "Basic " + Base64.getEncoder().encodeToString(auth.getBytes()));
 
-            // TODO - Implement the actual call to Jenkins API to trigger the job with the provided project parameter. URL from properties file.
-
-            // Log the successful acceptance of the Jenkins job
-            saveAndBroadcastLog(deploymentId, "INFO", "Jenkins Job aceptado. Estado: IN_PROGRESS");
-
-            // Simulate time taken for Jenkins to process the job. This should be replaced with actual status checks.
-            Thread.sleep(5000);
-
-            // TODO - Implement polling mechanism to check Jenkins job status and log updates in real-time
-            // while (job is running)..
-
-            // Simulation of logs
-            for (int i = 1; i <= 5; i++) {
-                saveAndBroadcastLog(deploymentId, "INFO", "Jenkins Job en progreso... (" + i * 20 + "% completado)");
-                Thread.sleep(3000);
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("DEPLOYMENT_ID", deploymentId);
+            if (colorParam != null && !colorParam.isBlank()) {
+                params.add("COLOR", colorParam);
             }
 
-            // End of the deployment process
-            saveAndBroadcastLog(deploymentId, "INFO", "Despliegue finalizado con éxito en infraestructura de destino. Estado: SUCCESS");
+            ResponseEntity<String> response =
+                    restTemplate.postForEntity(url, new HttpEntity<>(params, headers), String.class);
+
+            if (response.getStatusCode() != HttpStatus.CREATED) {
+                throw new RuntimeException("Jenkins rechazó la petición: " + response.getStatusCode());
+            }
+
+            saveAndBroadcastLog(deploymentId, "INFO", "Jenkins Job aceptado. Estado: IN_PROGRESS");
+
+            Long lastSeenLogId = logRepository.findTopByDeploymentIdOrderByLogIdDesc(deploymentId)
+                    .map(DeploymentLog::getLogId)
+                    .orElse(0L);
+
+            boolean pipelineActivo = true;
+            String terminalStatus = null;
+
+            while (pipelineActivo) {
+                Thread.sleep(2000);
+
+                List<DeploymentLog> nuevosLogs =
+                        logRepository.findByDeploymentIdAndLogIdGreaterThanOrderByLogIdAsc(deploymentId, lastSeenLogId);
+
+                for (DeploymentLog nuevoLog : nuevosLogs) {
+                    sseService.sendLogRealTime(deploymentId, nuevoLog);
+                    lastSeenLogId = nuevoLog.getLogId();
+                    Thread.sleep(1500);
+                    String msg = nuevoLog.getMessage() == null ? "" : nuevoLog.getMessage().toUpperCase();
+
+                    if (msg.contains("SUCCESS")) {
+                        terminalStatus = "SUCCESS";
+                        pipelineActivo = false;
+                        break;
+                    } else if (msg.contains("FAILURE")) {
+                        terminalStatus = "FAILURE";
+                        pipelineActivo = false;
+                        break;
+                    } else if (msg.contains("ABORTED")) {
+                        terminalStatus = "ABORTED";
+                        pipelineActivo = false;
+                        break;
+                    }
+                }
+            }
+
+            if ("SUCCESS".equals(terminalStatus)) {
+                saveAndBroadcastLog(
+                        deploymentId,
+                        "INFO",
+                        "Despliegue finalizado con éxito en infraestructura de destino. Estado: SUCCESS"
+                );
+            } else {
+                saveAndBroadcastLog(
+                        deploymentId,
+                        "ERROR",
+                        "Despliegue finalizado sin éxito. Estado: " + terminalStatus
+                );
+            }
+
         } catch (Exception e) {
             saveAndBroadcastLog(deploymentId, "ERROR", "Fallo crítico en la comunicación con Jenkins: " + e.getMessage());
         } finally {
             configService.setSystemLock(false);
             log.info("Hilo asíncrono finalizado para el despliegue {}", deploymentId);
+            if (colorParam != null && !colorParam.isBlank()) {
+                configService.emitConfigUpdate("COLOR", colorParam);
+            }
         }
     }
 
@@ -68,11 +140,7 @@ public class JenkinsRunnerService {
                 .logTimestamp(LocalDateTime.now())
                 .build();
 
-        // Save log to the database
         logRepository.save(buildLog);
-
-        // Send log to clients in real-time via SSE
         sseService.sendLogRealTime(deploymentId, buildLog);
     }
-
 }

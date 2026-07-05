@@ -20,7 +20,7 @@ public class DeploymentLog {
     @Column(name = "LOG_ID")
     private Long logId;
 
-    @Column(name = "DEPLOYMENT_ID", nullable = false, length = 50)
+    @Column(name = "DEPLOYMENT_ID", nullable = false, length = 255)
     private String deploymentId;
 
     @Column(name = "LOG_TIMESTAMP", nullable = false)
