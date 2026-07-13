@@ -107,6 +107,7 @@ public class JenkinsRunnerService {
                 }
             }
 
+            /* 2 success error
             if ("SUCCESS".equals(terminalStatus)) {
                 saveAndBroadcastLog(
                         deploymentId,
@@ -120,11 +121,11 @@ public class JenkinsRunnerService {
                         "Despliegue finalizado sin éxito. Estado: " + terminalStatus
                 );
             }
-
+        */
         } catch (Exception e) {
             saveAndBroadcastLog(deploymentId, "ERROR", "Fallo crítico en la comunicación con Jenkins: " + e.getMessage());
         } finally {
-            configService.setSystemLock(false);
+            configService.startAutomaticRollbackCountdown("#4d3b31");
             log.info("Hilo asíncrono finalizado para el despliegue {}", deploymentId);
             if (colorParam != null && !colorParam.isBlank()) {
                 configService.emitConfigUpdate("COLOR", colorParam);
