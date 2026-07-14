@@ -4,15 +4,13 @@ import com.mdz.deploystream.entities.AppConfig;
 import com.mdz.deploystream.services.ConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/config")
+@CrossOrigin(origins = {"http://localhost:4200", "https://portfolio.mdz.cat"})
 @RequiredArgsConstructor
 public class ConfigController {
 

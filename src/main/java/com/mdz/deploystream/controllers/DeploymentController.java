@@ -14,6 +14,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/deploy")
+@CrossOrigin(origins = {"http://localhost:4200", "https://portfolio.mdz.cat"})
 @RequiredArgsConstructor
 public class DeploymentController {
 
