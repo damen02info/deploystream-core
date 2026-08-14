@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/config")
-@CrossOrigin(origins = {"http://localhost:4200", "https://portfolio.mdz.cat"})
 @RequiredArgsConstructor
 public class ConfigController {
 

@@ -1,0 +1,33 @@
+name: CI/CD Spring Boot Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build with Maven (skip tests)
+        run: mvn clean package -DskipTests
+
+      - name: Rename JAR for deployment
+        run: cp target/deploystream-core-*.jar app.jar
+
+      - name: Trigger n8n Deployment Webhook
+        run: |
+          curl -X POST "${{ secrets.WEBHOOK_URL_BACKEND }}" \
+            -H "X-API-KEY: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}" \
+            -F "data=@app.jar"

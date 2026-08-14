@@ -12,13 +12,13 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(org.springframework.web.servlet.config.annotation.CorsRegistry registry) {
-                registry.addMapping("/api/**") // All endpoints under /api/
-                        .allowedOrigins("http://localhost:4200") // Angular URL
+                registry.addMapping("/api/**")
+                        .allowedOrigins("http://localhost:4200", "https://portfolio.mdz.cat")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .exposedHeaders("Authorization")
-                        .allowCredentials(true) // Required for cookies and Authorization header
-                        .maxAge(3600); // Preflight request cache duration
+                        .allowCredentials(true)
+                        .maxAge(3600);
             }
         };
     }

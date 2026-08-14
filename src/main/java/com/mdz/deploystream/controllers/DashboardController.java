@@ -11,11 +11,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/dashboard")
-@CrossOrigin(origins = {"http://localhost:4200", "https://portfolio.mdz.cat"})
 @RequiredArgsConstructor
 public class DashboardController {
 
-    private final SseConfigMonitorService sseConfigMonitorService; // Inyectado
+    private final SseConfigMonitorService sseConfigMonitorService;
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamLiveTable() {

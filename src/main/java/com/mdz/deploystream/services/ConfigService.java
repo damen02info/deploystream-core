@@ -60,6 +60,18 @@ public class ConfigService {
                 .orElse(false);
     }
 
+    @Transactional
+    public boolean tryAcquireLock() {
+        boolean alreadyLocked = appConfigRepository.findById("SYSTEM_LOCK")
+                .map(AppConfig::getIsLocked)
+                .orElse(false);
+        if (alreadyLocked) {
+            return false;
+        }
+        setSystemLock(true);
+        return true;
+    }
+
     @Transactional(readOnly = true)
     public List<AppConfig> getAllConfigs() {
         return appConfigRepository.findAll();

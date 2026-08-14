@@ -6,8 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-// import org.springframework.web.client.RestClient;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -17,12 +15,10 @@ import java.util.concurrent.CompletableFuture;
 @RequiredArgsConstructor
 public class JenkinsOrchestratorService {
 
-    // private final RestClient restClient = RestClient.builder().build();
     private final ConfigService configService;
     private final JenkinsRunnerService runnerService;
 
-    public void initDeploymentProcess(String projectParam, String deploymentId, String colorParam) {
-        configService.setSystemLock(true);
+    public void runDeploymentProcess(String projectParam, String deploymentId, String colorParam) {
         runnerService.runJenkinsJobAsync(projectParam, deploymentId, colorParam);
     }
 
