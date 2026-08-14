@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/deploy")
-@CrossOrigin(origins = {"http://localhost:4200", "https://portfolio.mdz.cat"})
 @RequiredArgsConstructor
 public class DeploymentController {
 
@@ -37,12 +36,12 @@ public class DeploymentController {
             return ResponseEntity.badRequest().body(Map.of("error", "El parámetro 'project' es obligatorio."));
         }
 
-        if (configService.isSystemLocked()) {
+        if (!configService.tryAcquireLock()) {
             return ResponseEntity.status(HttpStatus.LOCKED)
                     .body(Map.of("error", "El sistema está bloqueado. Hay un despliegue en curso en Jenkins."));
         }
 
-        jenkinsOrchestratorService.initDeploymentProcess(projectName, deploymentId, color);
+        jenkinsOrchestratorService.runDeploymentProcess(projectName, deploymentId, color);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED)
                 .body(Map.of(
