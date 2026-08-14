@@ -99,7 +99,7 @@ public class ConfigService {
 
         log.info("Rollback countdown started");
         log.info("SYSTEM_LOCK = {}, lastModified = {}", lock.getIsLocked(), lock.getLastModified());
-        LocalDateTime expireAt = lock.getLastModified().plusSeconds(26);
+        LocalDateTime expireAt = LocalDateTime.now().plusSeconds(10);
 
         while (LocalDateTime.now().isBefore(expireAt)) {
             if (!isSystemLocked()) {
@@ -108,6 +108,10 @@ public class ConfigService {
             }
 
             try {
+                int remaining = (int) java.time.temporal.ChronoUnit.SECONDS.between(LocalDateTime.now(), expireAt);
+                if (remaining >= 0) {
+                    eventPublisher.publishEvent(new com.mdz.deploystream.events.CountdownTickEvent(this, remaining));
+                }
                 Thread.sleep(1000);
             } catch (InterruptedException e) {
                 log.error("Rollback thread interrupted", e);
@@ -115,6 +119,8 @@ public class ConfigService {
                 return;
             }
         }
+        
+        eventPublisher.publishEvent(new com.mdz.deploystream.events.CountdownTickEvent(this, 0));
 
         if (!isSystemLocked()) {
             return;

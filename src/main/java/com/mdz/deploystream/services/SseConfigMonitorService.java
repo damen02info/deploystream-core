@@ -47,4 +47,23 @@ public class SseConfigMonitorService {
         // Remove dead emitters that failed to send the event
         emitters.removeAll(deadEmitters);
     }
+
+    // Listen for CountdownTickEvent and broadcast the remaining time
+    @EventListener
+    public void onCountdownTick(com.mdz.deploystream.events.CountdownTickEvent event) {
+        List<SseEmitter> deadEmitters = new java.util.ArrayList<>();
+        int remaining = event.getRemainingSeconds();
+
+        emitters.forEach(emitter -> {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("countdown-tick")
+                        .data(java.util.Map.of("remaining", remaining)));
+            } catch (IOException e) {
+                deadEmitters.add(emitter);
+            }
+        });
+
+        emitters.removeAll(deadEmitters);
+    }
 }
